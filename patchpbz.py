@@ -188,6 +188,15 @@ if args.snowy_3v7:
         print("WARNING: snowy charger code pattern not found?")
     fw_data = fw_data.replace(OLD_CHARGER_CODE, NEW_CHARGER_CODE)
 
+    # Part 3: Patch CH_TMR to disable maintain charge timeout (15 min -> 0 min)
+    # This makes FC appear faster by skipping the 15-minute maintain phase
+    OLD_CH_TMR = bytes.fromhex("0c 20 18 21 97 f7")
+    NEW_CH_TMR = bytes.fromhex("0c 20 08 21 97 f7")
+    print("patching snowy PMIC CH_TMR: 0x18 -> 0x08 (disable maintain timeout)")
+    if fw_data.find(OLD_CH_TMR) == -1:
+        print("WARNING: snowy CH_TMR code pattern not found?")
+    fw_data = fw_data.replace(OLD_CH_TMR, NEW_CH_TMR)
+
 if args.bluetooth:
     BLUETOOTH_OLD = b"\x09\x00\x11\x00\x00\x00\x58\x02"
     BLUETOOTH_NEW = b"\x0F\x00\x1E\x00\x00\x00\x58\x02"
