@@ -167,6 +167,22 @@ if args.snowy_3v7:
         print("WARNING: snowy charging table not found?")
     fw_data = fw_data.replace(OLD_CHARGING, NEW_CHARGING)
 
+    # FC (Fully Charged) fix: Change PMIC charging_cutoff_voltage from 4300mV to 4200mV
+    # This makes the MAX14690 PMIC use 4.20V termination voltage instead of 4.30V,
+    # allowing the charge-complete state to trigger for 3.7V batteries.
+    # Pattern is in BoardConfigPower struct: charging_cutoff_voltage followed by
+    # charging_status_led_voltage_compensation(0), padding, low_power_threshold(2), battery_capacity_hours(204)
+    OLD_CHARGER_CUTOFF = bytes.fromhex("""
+00 00 00 00 cc 10 00 00  00 00 00 00 02 cc
+""")
+    NEW_CHARGER_CUTOFF = bytes.fromhex("""
+00 00 00 00 68 10 00 00  00 00 00 00 02 cc
+""")
+    print("patching snowy PMIC charger cutoff voltage to 4200mV for FC indicator")
+    if fw_data.find(OLD_CHARGER_CUTOFF) == -1:
+        print("WARNING: snowy charger cutoff voltage not found?")
+    fw_data = fw_data.replace(OLD_CHARGER_CUTOFF, NEW_CHARGER_CUTOFF)
+
 if args.bluetooth:
     BLUETOOTH_OLD = b"\x09\x00\x11\x00\x00\x00\x58\x02"
     BLUETOOTH_NEW = b"\x0F\x00\x1E\x00\x00\x00\x58\x02"
