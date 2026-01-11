@@ -138,9 +138,9 @@ if args.snowy_3v7:
 3c 00 2d 0f 46 00 73 0f  50 00 e1 0f 5a 00 40 10
 64 00 9a 10 01 01 01 01  ff ff ff ff ff ff ff ff
 """)
-    # Proper 3.7V LiPo discharge curve (100% @ 4140mV with safety margin)
+    # Proper 3.7V LiPo discharge curve (100% @ 4140mV, 0% @ 3100mV like Joshua's silk)
     NEW_DISCHARGE = bytes.fromhex("""
-00 00 c6 0c 02 00 0c 0d  05 00 1a 0e 0a 00 6a 0e
+00 00 1c 0c 02 00 0c 0d  05 00 1a 0e 0a 00 6a 0e
 14 00 92 0e 1e 00 ba 0e  28 00 d8 0e 32 00 00 0f
 3c 00 1e 0f 46 00 6e 0f  50 00 b4 0f 5a 00 0e 10
 64 00 2c 10 01 01 01 01  ff ff ff ff ff ff ff ff
@@ -197,9 +197,9 @@ if args.snowy_dvt_3v7:
 3c 00 00 0f 46 00 46 0f  50 00 a0 0f 5a 00 18 10
 64 00 9a 10 01 00 01 00  01 01 01 ff ff ff ff ff
 """)
-    # 3.7V LiPo discharge curve (100% @ 4140mV)
+    # 3.7V LiPo discharge curve (100% @ 4140mV, 0% @ 3100mV like Joshua's silk)
     NEW_DISCHARGE = bytes.fromhex("""
-00 00 c6 0c 02 00 6c 0d  05 00 10 0e 0a 00 4c 0e
+00 00 1c 0c 02 00 6c 0d  05 00 10 0e 0a 00 4c 0e
 14 00 7e 0e 1e 00 a6 0e  28 00 c4 0e 32 00 ec 0e
 3c 00 14 0f 46 00 5a 0f  50 00 a0 0f 5a 00 f0 0f
 64 00 2c 10 01 00 01 00  01 01 01 ff ff ff ff ff
