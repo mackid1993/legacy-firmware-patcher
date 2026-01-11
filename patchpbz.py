@@ -136,11 +136,12 @@ if args.snowy_3v7:
 3c 00 2d 0f 46 00 73 0f  50 00 e1 0f 5a 00 40 10
 64 00 9a 10 01 01 01 01  ff ff ff ff ff ff ff ff
 """)
+    # Use same voltage curve as silk-3v7 (proven to work)
     NEW_CONSTS = bytes.fromhex("""
-00 00 1c 0c 02 00 39 0d  05 00 10 0e 0a 00 74 0e
-14 00 97 0e 1e 00 ba 0e  28 00 e2 0e 32 00 00 0f
-3c 00 32 0f 46 00 69 0f  50 00 c8 0f 5a 00 18 10
-64 00 2c 10 01 01 01 01  ff ff ff ff ff ff ff ff
+00 00 1c 0c 02 00 52 0d  05 00 10 0e 0a 00 56 0e
+14 00 7e 0e 1e 00 a1 0e  28 00 bf 0e 32 00 e2 0e
+3c 00 14 0f 46 00 55 0f  50 00 a0 0f 5a 00 f0 0f
+64 00 18 10 01 01 01 01  ff ff ff ff ff ff ff ff
 """)
     print("patching snowy battery percentage table to 3.7V")
     if fw_data.find(OLD_CONSTS) == -1:
