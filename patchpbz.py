@@ -136,13 +136,13 @@ if args.snowy_3v7:
 3c 00 2d 0f 46 00 73 0f  50 00 e1 0f 5a 00 40 10
 64 00 9a 10 01 01 01 01  ff ff ff ff ff ff ff ff
 """)
-    # 3.7V replacement battery curve (100% @ 4100mV)
-    # Based on Joshua's delta method, lowered for iFixit batteries
+    # Proper 3.7V LiPo discharge curve (100% @ 4200mV)
+    # Based on actual 1S LiPo voltage-capacity chart
     NEW_CONSTS = bytes.fromhex("""
-00 00 1c 0c 02 00 39 0d  05 00 10 0e 0a 00 74 0e
-14 00 97 0e 1e 00 ba 0e  28 00 e2 0e 32 00 00 0f
-3c 00 32 0f 46 00 64 0f  50 00 a0 0f 5a 00 dc 0f
-64 00 04 10 01 01 01 01  ff ff ff ff ff ff ff ff
+00 00 c6 0c 02 00 0c 0d  05 00 1a 0e 0a 00 6a 0e
+14 00 92 0e 1e 00 ba 0e  28 00 d8 0e 32 00 00 0f
+3c 00 1e 0f 46 00 6e 0f  50 00 b4 0f 5a 00 0e 10
+64 00 68 10 01 01 01 01  ff ff ff ff ff ff ff ff
 """)
     print("patching snowy battery percentage table to 3.7V")
     if fw_data.find(OLD_CONSTS) == -1:
