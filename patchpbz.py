@@ -151,11 +151,11 @@ if args.snowy_3v7:
 1e 00 fa 0f 28 00 31 10  32 00 4f 10 3c 00 81 10
 46 00 9a 10 00 00 00 00  00 00 00 00
 """)
-    # 3.7V charging curve (lowered ~100-150mV at top)
+    # 3.7V charging curve (70% @ 4200mV to match full charge voltage)
     NEW_CHARGING = bytes.fromhex("""
 02 00 ec 0e 05 00 3c 0f  0a 00 6e 0f 14 00 8c 0f
-1e 00 b4 0f 28 00 dc 0f  32 00 f0 0f 3c 00 04 10
-46 00 04 10 00 00 00 00  00 00 00 00
+1e 00 b4 0f 28 00 dc 0f  32 00 f0 0f 3c 00 28 10
+46 00 68 10 00 00 00 00  00 00 00 00
 """)
     print("patching snowy battery discharge table to 3.7V")
     if fw_data.find(OLD_DISCHARGE) == -1:
