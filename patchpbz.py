@@ -167,13 +167,20 @@ if args.snowy_3v7:
         print("WARNING: snowy charging table not found?")
     fw_data = fw_data.replace(OLD_CHARGING, NEW_CHARGING)
 
-    # FC (Fully Charged) fix: Patch the PMIC charger config register write
-    # In prv_config_charger(), change the CHG_CNTL_A value from 0xCB (4.30V) to 0xC7 (4.20V)
-    # This is a direct code patch at the instruction level:
-    #   MOVS R0, #0x0A  (register address CHG_CNTL_A)
-    #   MOVS R1, #0xCB  (value: 0xCB for 4.30V) -> change to 0xC7 for 4.20V
-    #   BL prv_write_register
-    # Pattern: 0a 20 cb 21 97 f7 (unique in firmware)
+    # FC (Fully Charged) fix: Patch BOTH PMIC charger config register writes
+    # prv_config_charger() has a HACK that writes 0xCD (4.35V) first, then cycles
+    # the charger, then writes the real config. We need to patch BOTH to 4.20V
+    # so the PMIC enters Done state when battery is already above 4.20V.
+    #
+    # Part 1: Patch the HACK write (0xCD = 4.35V -> 0xC7 = 4.20V)
+    OLD_HACK_CODE = bytes.fromhex("0a 20 cd 21 97 f7")
+    NEW_HACK_CODE = bytes.fromhex("0a 20 c7 21 97 f7")
+    print("patching snowy PMIC HACK: 0xCD -> 0xC7 (4.20V)")
+    if fw_data.find(OLD_HACK_CODE) == -1:
+        print("WARNING: snowy HACK code pattern not found?")
+    fw_data = fw_data.replace(OLD_HACK_CODE, NEW_HACK_CODE)
+
+    # Part 2: Patch the real config write (0xCB = 4.30V -> 0xC7 = 4.20V)
     OLD_CHARGER_CODE = bytes.fromhex("0a 20 cb 21 97 f7")
     NEW_CHARGER_CODE = bytes.fromhex("0a 20 c7 21 97 f7")
     print("patching snowy PMIC CHG_CNTL_A register write: 0xCB -> 0xC7 (4.20V termination)")
