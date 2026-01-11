@@ -27,6 +27,7 @@ parser.add_argument("-r", "--respack", nargs = 1, help = "resource pack")
 parser.add_argument("-b", "--bluetooth", action = 'store_true', help = "fix Bluetooth LE constants")
 parser.add_argument("-t", "--tzdata", nargs = 1, help = "new timezone database")
 parser.add_argument("--silk-3v7", action = 'store_true', help = "replace Silk battery percentage table with constants for 3.7V cell")
+parser.add_argument("--snowy-3v7", action = 'store_true', help = "replace Snowy battery percentage table with constants for 3.7V cell")
 parser.add_argument("-l", "--license", nargs = 1, help = "new license file")
 parser.add_argument("pbzin", help = "template PBZ file")
 parser.add_argument("pbzout", help = "output PBZ file")
@@ -126,6 +127,24 @@ if args.silk_3v7:
     print("patching silk battery percentage table to 3.7V")
     if fw_data.find(OLD_CONSTS) == -1:
         print("WARNING: silk battery table not found?")
+    fw_data = fw_data.replace(OLD_CONSTS, NEW_CONSTS)
+
+if args.snowy_3v7:
+    OLD_CONSTS = bytes.fromhex("""
+00 00 e4 0c 02 00 89 0d  05 00 1f 0e 0a 00 65 0e
+14 00 8d 0e 1e 00 b0 0e  28 00 d3 0e 32 00 f6 0e
+3c 00 2d 0f 46 00 73 0f  50 00 e1 0f 5a 00 40 10
+64 00 9a 10 01 01 01 01  ff ff ff ff ff ff ff ff
+""")
+    NEW_CONSTS = bytes.fromhex("""
+00 00 1c 0c 02 00 39 0d  05 00 10 0e 0a 00 74 0e
+14 00 97 0e 1e 00 ba 0e  28 00 e2 0e 32 00 00 0f
+3c 00 32 0f 46 00 69 0f  50 00 c8 0f 5a 00 18 10
+64 00 2c 10 01 01 01 01  ff ff ff ff ff ff ff ff
+""")
+    print("patching snowy battery percentage table to 3.7V")
+    if fw_data.find(OLD_CONSTS) == -1:
+        print("WARNING: snowy battery table not found?")
     fw_data = fw_data.replace(OLD_CONSTS, NEW_CONSTS)
 
 if args.bluetooth:
