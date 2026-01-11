@@ -167,6 +167,16 @@ if args.snowy_3v7:
         print("WARNING: snowy charging table not found?")
     fw_data = fw_data.replace(OLD_CHARGING, NEW_CHARGING)
 
+    # FC (Fully Charged) threshold patch
+    # Original: 4368mV (0x1110) - designed for 3.8V battery
+    # New: 4140mV (0x102C) - for 3.7V battery
+    OLD_FC = bytes.fromhex("00 00 10 10 11 12 00 08")
+    NEW_FC = bytes.fromhex("00 00 10 2c 10 12 00 08")
+    print("patching snowy FC threshold to 3.7V (4368mV -> 4140mV)")
+    if fw_data.find(OLD_FC) == -1:
+        print("WARNING: snowy FC threshold not found?")
+    fw_data = fw_data.replace(OLD_FC, NEW_FC)
+
 if args.bluetooth:
     BLUETOOTH_OLD = b"\x09\x00\x11\x00\x00\x00\x58\x02"
     BLUETOOTH_NEW = b"\x0F\x00\x1E\x00\x00\x00\x58\x02"
