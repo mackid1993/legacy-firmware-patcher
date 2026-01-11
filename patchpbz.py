@@ -27,7 +27,8 @@ parser.add_argument("-r", "--respack", nargs = 1, help = "resource pack")
 parser.add_argument("-b", "--bluetooth", action = 'store_true', help = "fix Bluetooth LE constants")
 parser.add_argument("-t", "--tzdata", nargs = 1, help = "new timezone database")
 parser.add_argument("--silk-3v7", action = 'store_true', help = "replace Silk battery percentage table with constants for 3.7V cell")
-parser.add_argument("--snowy-3v7", action = 'store_true', help = "replace Snowy battery percentage table with constants for 3.7V cell")
+parser.add_argument("--snowy-3v7", action = 'store_true', help = "replace Snowy battery percentage table with constants for 3.7V cell (Pebble Time Steel)")
+parser.add_argument("--snowy-dvt-3v7", action = 'store_true', help = "replace Snowy DVT battery percentage table with constants for 3.7V cell (Pebble Time)")
 parser.add_argument("-l", "--license", nargs = 1, help = "new license file")
 parser.add_argument("pbzin", help = "template PBZ file")
 parser.add_argument("pbzout", help = "output PBZ file")
@@ -137,9 +138,9 @@ if args.snowy_3v7:
 3c 00 2d 0f 46 00 73 0f  50 00 e1 0f 5a 00 40 10
 64 00 9a 10 01 01 01 01  ff ff ff ff ff ff ff ff
 """)
-    # Proper 3.7V LiPo discharge curve (100% @ 4140mV with safety margin)
+    # Proper 3.7V LiPo discharge curve (100% @ 4140mV, 0% @ 3100mV like Joshua's silk)
     NEW_DISCHARGE = bytes.fromhex("""
-00 00 c6 0c 02 00 0c 0d  05 00 1a 0e 0a 00 6a 0e
+00 00 1c 0c 02 00 0c 0d  05 00 1a 0e 0a 00 6a 0e
 14 00 92 0e 1e 00 ba 0e  28 00 d8 0e 32 00 00 0f
 3c 00 1e 0f 46 00 6e 0f  50 00 b4 0f 5a 00 0e 10
 64 00 2c 10 01 01 01 01  ff ff ff ff ff ff ff ff
@@ -186,6 +187,58 @@ if args.snowy_3v7:
     print("patching snowy PMIC CHG_CNTL_A register write: 0xCB -> 0xC7 (4.20V termination)")
     if fw_data.find(OLD_CHARGER_CODE) == -1:
         print("WARNING: snowy charger code pattern not found?")
+    fw_data = fw_data.replace(OLD_CHARGER_CODE, NEW_CHARGER_CODE)
+
+if args.snowy_dvt_3v7:
+    # Pebble Time (snowy_dvt) discharge curve - original 3.8V
+    OLD_DISCHARGE = bytes.fromhex("""
+00 00 e4 0c 02 00 ac 0d  05 00 10 0e 0a 00 38 0e
+14 00 6a 0e 1e 00 92 0e  28 00 a6 0e 32 00 ce 0e
+3c 00 00 0f 46 00 46 0f  50 00 a0 0f 5a 00 18 10
+64 00 9a 10 01 00 01 00  01 01 01 ff ff ff ff ff
+""")
+    # 3.7V LiPo discharge curve (100% @ 4140mV, 0% @ 3100mV like Joshua's silk)
+    NEW_DISCHARGE = bytes.fromhex("""
+00 00 1c 0c 02 00 6c 0d  05 00 10 0e 0a 00 4c 0e
+14 00 7e 0e 1e 00 a6 0e  28 00 c4 0e 32 00 ec 0e
+3c 00 14 0f 46 00 5a 0f  50 00 a0 0f 5a 00 f0 0f
+64 00 2c 10 01 00 01 00  01 01 01 ff ff ff ff ff
+""")
+    print("patching snowy_dvt battery discharge table to 3.7V")
+    if fw_data.find(OLD_DISCHARGE) == -1:
+        print("WARNING: snowy_dvt discharge table not found?")
+    fw_data = fw_data.replace(OLD_DISCHARGE, NEW_DISCHARGE)
+
+    # Pebble Time charging curve (starts at 10%)
+    OLD_CHARGING = bytes.fromhex("""
+0a 00 82 0f 14 00 b4 0f  1e 00 dc 0f 28 00 fa 0f
+32 00 22 10 3c 00 5e 10  46 00 9a 10 00 00 00 00
+""")
+    # 3.7V charging curve (70% @ 4140mV)
+    NEW_CHARGING = bytes.fromhex("""
+0a 00 6e 0f 14 00 8c 0f  1e 00 b4 0f 28 00 d2 0f
+32 00 f0 0f 3c 00 0e 10  46 00 2c 10 00 00 00 00
+""")
+    print("patching snowy_dvt battery charging table to 3.7V")
+    if fw_data.find(OLD_CHARGING) == -1:
+        print("WARNING: snowy_dvt charging table not found?")
+    fw_data = fw_data.replace(OLD_CHARGING, NEW_CHARGING)
+
+    # FC fix: Patch PMIC charger config (same as snowy_s3 but different branch offsets)
+    # HACK: 0xCD (4.35V) -> 0xC7 (4.20V)
+    OLD_HACK_CODE = bytes.fromhex("0a 20 cd 21 91 f7")
+    NEW_HACK_CODE = bytes.fromhex("0a 20 c7 21 91 f7")
+    print("patching snowy_dvt PMIC HACK: 0xCD -> 0xC7 (4.20V)")
+    if fw_data.find(OLD_HACK_CODE) == -1:
+        print("WARNING: snowy_dvt HACK code pattern not found?")
+    fw_data = fw_data.replace(OLD_HACK_CODE, NEW_HACK_CODE)
+
+    # Real config: 0xCB (4.30V) -> 0xC7 (4.20V)
+    OLD_CHARGER_CODE = bytes.fromhex("0a 20 cb 21 91 f7")
+    NEW_CHARGER_CODE = bytes.fromhex("0a 20 c7 21 91 f7")
+    print("patching snowy_dvt PMIC CHG_CNTL_A: 0xCB -> 0xC7 (4.20V termination)")
+    if fw_data.find(OLD_CHARGER_CODE) == -1:
+        print("WARNING: snowy_dvt charger code pattern not found?")
     fw_data = fw_data.replace(OLD_CHARGER_CODE, NEW_CHARGER_CODE)
 
 if args.bluetooth:
