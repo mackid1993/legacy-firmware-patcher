@@ -138,12 +138,12 @@ if args.snowy_3v7:
 3c 00 2d 0f 46 00 73 0f  50 00 e1 0f 5a 00 40 10
 64 00 9a 10 01 01 01 01  ff ff ff ff ff ff ff ff
 """)
-    # Proper 3.7V LiPo discharge curve (100% @ 4140mV, 0% @ 3100mV like Joshua's silk)
+    # Joshua's proven silk 3.7V LiPo discharge curve (100% @ 4120mV, 0% @ 3100mV)
     NEW_DISCHARGE = bytes.fromhex("""
-00 00 1c 0c 02 00 0c 0d  05 00 1a 0e 0a 00 6a 0e
-14 00 92 0e 1e 00 ba 0e  28 00 d8 0e 32 00 00 0f
-3c 00 1e 0f 46 00 6e 0f  50 00 b4 0f 5a 00 0e 10
-64 00 2c 10 01 01 01 01  ff ff ff ff ff ff ff ff
+00 00 1c 0c 02 00 52 0d  05 00 10 0e 0a 00 56 0e
+14 00 7e 0e 1e 00 a1 0e  28 00 bf 0e 32 00 e2 0e
+3c 00 14 0f 46 00 55 0f  50 00 a0 0f 5a 00 f0 0f
+64 00 18 10 01 01 01 01  ff ff ff ff ff ff ff ff
 """)
     # Charging curve (used while charging) - has higher voltages due to IR
     # Original: 2%=3850, 5%=3935, 10%=4000, 20%=4040, 30%=4090, 40%=4145, 50%=4175, 60%=4225, 70%=4250
@@ -152,11 +152,11 @@ if args.snowy_3v7:
 1e 00 fa 0f 28 00 31 10  32 00 4f 10 3c 00 81 10
 46 00 9a 10 00 00 00 00  00 00 00 00
 """)
-    # 3.7V charging curve (70% @ 4140mV with safety margin)
+    # 3.7V charging curve (70% @ 4120mV to match Joshua's silk)
     NEW_CHARGING = bytes.fromhex("""
 02 00 ec 0e 05 00 3c 0f  0a 00 6e 0f 14 00 8c 0f
 1e 00 b4 0f 28 00 dc 0f  32 00 f0 0f 3c 00 0e 10
-46 00 2c 10 00 00 00 00  00 00 00 00
+46 00 18 10 00 00 00 00  00 00 00 00
 """)
     print("patching snowy battery discharge table to 3.7V")
     if fw_data.find(OLD_DISCHARGE) == -1:
@@ -197,12 +197,12 @@ if args.snowy_dvt_3v7:
 3c 00 00 0f 46 00 46 0f  50 00 a0 0f 5a 00 18 10
 64 00 9a 10 01 00 01 00  01 01 01 ff ff ff ff ff
 """)
-    # 3.7V LiPo discharge curve (100% @ 4140mV, 0% @ 3100mV like Joshua's silk)
+    # Joshua's proven silk 3.7V LiPo discharge curve (100% @ 4120mV, 0% @ 3100mV)
     NEW_DISCHARGE = bytes.fromhex("""
-00 00 1c 0c 02 00 6c 0d  05 00 10 0e 0a 00 4c 0e
-14 00 7e 0e 1e 00 a6 0e  28 00 c4 0e 32 00 ec 0e
-3c 00 14 0f 46 00 5a 0f  50 00 a0 0f 5a 00 f0 0f
-64 00 2c 10 01 00 01 00  01 01 01 ff ff ff ff ff
+00 00 1c 0c 02 00 52 0d  05 00 10 0e 0a 00 56 0e
+14 00 7e 0e 1e 00 a1 0e  28 00 bf 0e 32 00 e2 0e
+3c 00 14 0f 46 00 55 0f  50 00 a0 0f 5a 00 f0 0f
+64 00 18 10 01 00 01 00  01 01 01 ff ff ff ff ff
 """)
     print("patching snowy_dvt battery discharge table to 3.7V")
     if fw_data.find(OLD_DISCHARGE) == -1:
@@ -214,10 +214,10 @@ if args.snowy_dvt_3v7:
 0a 00 82 0f 14 00 b4 0f  1e 00 dc 0f 28 00 fa 0f
 32 00 22 10 3c 00 5e 10  46 00 9a 10 00 00 00 00
 """)
-    # 3.7V charging curve (70% @ 4140mV)
+    # 3.7V charging curve (70% @ 4120mV to match Joshua's silk)
     NEW_CHARGING = bytes.fromhex("""
 0a 00 6e 0f 14 00 8c 0f  1e 00 b4 0f 28 00 d2 0f
-32 00 f0 0f 3c 00 0e 10  46 00 2c 10 00 00 00 00
+32 00 f0 0f 3c 00 0e 10  46 00 18 10 00 00 00 00
 """)
     print("patching snowy_dvt battery charging table to 3.7V")
     if fw_data.find(OLD_CHARGING) == -1:

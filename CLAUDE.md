@@ -20,9 +20,20 @@ Original 3.8V curve:
 - 100% = 4250mV
 - 0% = 3300mV
 
-Patched 3.7V curve:
-- 100% = 4140mV (safe max for 3.7V LiPo)
-- 0% = 3100mV (matches Joshua's silk approach for full advertised runtime)
+Patched 3.7V curve (Joshua's proven silk values):
+- 100% = 4120mV
+- 90% = 4080mV
+- 80% = 4000mV
+- 70% = 3925mV
+- 60% = 3860mV
+- 50% = 3810mV
+- 40% = 3775mV
+- 30% = 3745mV
+- 20% = 3710mV
+- 10% = 3670mV
+- 5% = 3600mV
+- 2% = 3410mV
+- 0% = 3100mV
 
 ### 2. PMIC Charge Termination (FC Fix)
 
@@ -67,8 +78,8 @@ This is optional - the main branches keep the 15-minute timeout for safety.
 ## Safety Notes
 
 - 3100mV (3.1V) for 0% is safe - 3.7V LiPo cells can safely discharge to ~3.0V
-- 4140mV (4.14V) for 100% is conservative - 3.7V LiPo max is 4.20V
-- Joshua (original Rebble dev) used 3100mV for Pebble 2 (`--silk-3v7`)
+- 4120mV (4.12V) for 100% is conservative - 3.7V LiPo max is 4.20V
+- These values match Joshua's proven Pebble 2 curve (`--silk-3v7`)
 
 ## Technical Details
 
@@ -79,7 +90,7 @@ Each entry is 4 bytes (little-endian):
 [pct_lo] [pct_hi] [mv_lo] [mv_hi]
 ```
 
-Example: `64 00 2c 10` = 100% @ 0x102c = 4140mV
+Example: `64 00 18 10` = 100% @ 0x1018 = 4120mV
 
 ### PMIC Register Values
 
