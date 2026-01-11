@@ -27,6 +27,7 @@ parser.add_argument("-r", "--respack", nargs = 1, help = "resource pack")
 parser.add_argument("-b", "--bluetooth", action = 'store_true', help = "fix Bluetooth LE constants")
 parser.add_argument("-t", "--tzdata", nargs = 1, help = "new timezone database")
 parser.add_argument("--silk-3v7", action = 'store_true', help = "replace Silk battery percentage table with constants for 3.7V cell")
+parser.add_argument("--snowy-3v7", action = 'store_true', help = "replace Snowy battery percentage table with constants for 3.7V cell")
 parser.add_argument("-l", "--license", nargs = 1, help = "new license file")
 parser.add_argument("pbzin", help = "template PBZ file")
 parser.add_argument("pbzout", help = "output PBZ file")
@@ -127,6 +128,65 @@ if args.silk_3v7:
     if fw_data.find(OLD_CONSTS) == -1:
         print("WARNING: silk battery table not found?")
     fw_data = fw_data.replace(OLD_CONSTS, NEW_CONSTS)
+
+if args.snowy_3v7:
+    # Discharge curve (used when not charging)
+    OLD_DISCHARGE = bytes.fromhex("""
+00 00 e4 0c 02 00 89 0d  05 00 1f 0e 0a 00 65 0e
+14 00 8d 0e 1e 00 b0 0e  28 00 d3 0e 32 00 f6 0e
+3c 00 2d 0f 46 00 73 0f  50 00 e1 0f 5a 00 40 10
+64 00 9a 10 01 01 01 01  ff ff ff ff ff ff ff ff
+""")
+    # Proper 3.7V LiPo discharge curve (100% @ 4140mV with safety margin)
+    NEW_DISCHARGE = bytes.fromhex("""
+00 00 c6 0c 02 00 0c 0d  05 00 1a 0e 0a 00 6a 0e
+14 00 92 0e 1e 00 ba 0e  28 00 d8 0e 32 00 00 0f
+3c 00 1e 0f 46 00 6e 0f  50 00 b4 0f 5a 00 0e 10
+64 00 2c 10 01 01 01 01  ff ff ff ff ff ff ff ff
+""")
+    # Charging curve (used while charging) - has higher voltages due to IR
+    # Original: 2%=3850, 5%=3935, 10%=4000, 20%=4040, 30%=4090, 40%=4145, 50%=4175, 60%=4225, 70%=4250
+    OLD_CHARGING = bytes.fromhex("""
+02 00 0a 0f 05 00 5f 0f  0a 00 a0 0f 14 00 c8 0f
+1e 00 fa 0f 28 00 31 10  32 00 4f 10 3c 00 81 10
+46 00 9a 10 00 00 00 00  00 00 00 00
+""")
+    # 3.7V charging curve (70% @ 4140mV with safety margin)
+    NEW_CHARGING = bytes.fromhex("""
+02 00 ec 0e 05 00 3c 0f  0a 00 6e 0f 14 00 8c 0f
+1e 00 b4 0f 28 00 dc 0f  32 00 f0 0f 3c 00 0e 10
+46 00 2c 10 00 00 00 00  00 00 00 00
+""")
+    print("patching snowy battery discharge table to 3.7V")
+    if fw_data.find(OLD_DISCHARGE) == -1:
+        print("WARNING: snowy discharge table not found?")
+    fw_data = fw_data.replace(OLD_DISCHARGE, NEW_DISCHARGE)
+
+    print("patching snowy battery charging table to 3.7V")
+    if fw_data.find(OLD_CHARGING) == -1:
+        print("WARNING: snowy charging table not found?")
+    fw_data = fw_data.replace(OLD_CHARGING, NEW_CHARGING)
+
+    # FC (Fully Charged) fix: Patch BOTH PMIC charger config register writes
+    # prv_config_charger() has a HACK that writes 0xCD (4.35V) first, then cycles
+    # the charger, then writes the real config. We need to patch BOTH to 4.20V
+    # so the PMIC enters Done state when battery is already above 4.20V.
+    #
+    # Part 1: Patch the HACK write (0xCD = 4.35V -> 0xC7 = 4.20V)
+    OLD_HACK_CODE = bytes.fromhex("0a 20 cd 21 97 f7")
+    NEW_HACK_CODE = bytes.fromhex("0a 20 c7 21 97 f7")
+    print("patching snowy PMIC HACK: 0xCD -> 0xC7 (4.20V)")
+    if fw_data.find(OLD_HACK_CODE) == -1:
+        print("WARNING: snowy HACK code pattern not found?")
+    fw_data = fw_data.replace(OLD_HACK_CODE, NEW_HACK_CODE)
+
+    # Part 2: Patch the real config write (0xCB = 4.30V -> 0xC7 = 4.20V)
+    OLD_CHARGER_CODE = bytes.fromhex("0a 20 cb 21 97 f7")
+    NEW_CHARGER_CODE = bytes.fromhex("0a 20 c7 21 97 f7")
+    print("patching snowy PMIC CHG_CNTL_A register write: 0xCB -> 0xC7 (4.20V termination)")
+    if fw_data.find(OLD_CHARGER_CODE) == -1:
+        print("WARNING: snowy charger code pattern not found?")
+    fw_data = fw_data.replace(OLD_CHARGER_CODE, NEW_CHARGER_CODE)
 
 if args.bluetooth:
     BLUETOOTH_OLD = b"\x09\x00\x11\x00\x00\x00\x58\x02"

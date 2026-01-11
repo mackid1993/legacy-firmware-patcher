@@ -9,6 +9,8 @@ done
 
 ./patchpbz.py -v v$NEW_VERSION-3v7 -b Pebble-4.3-silk.pbz out/Pebble-$NEW_VERSION-silk-3v7.pbz -t tzdata.bin.reso --license rbl-license.txt --silk-3v7
 
+./patchpbz.py -v v$NEW_VERSION-3v7 -b Pebble-4.3-snowy_s3.pbz out/Pebble-$NEW_VERSION-snowy_s3-3v7.pbz -t tzdata.bin.reso --license rbl-license.txt --snowy-3v7
+
 NEW_VERSION_V3=3.13.3-rbl
 OLD_VERSION_V3=3.12.3
 
