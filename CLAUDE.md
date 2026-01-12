@@ -35,6 +35,50 @@ Patched 3.7V curve (Joshua's proven silk values):
 - 2% = 3410mV
 - 0% = 3100mV
 
+#### 3.7V Charging Curve
+
+```
+2%  @ 3820mV
+5%  @ 3900mV
+10% @ 3950mV
+20% @ 3980mV
+30% @ 4020mV
+40% @ 4060mV
+50% @ 4080mV
+60% @ 4110mV
+70% @ 4120mV
+```
+
+**Why it caps at 70%:** The PMIC terminates at 4.20V. With any charging polarization offset, showing 100% would require a voltage above termination. The curve is compressed from Pebble's original 400mV span (3850-4250mV) to 300mV (3820-4120mV).
+
+**Offset comparison to original Pebble 3.8V:**
+
+| SoC | Pebble 3.8V Offset | 3.7V Offset | Difference |
+|-----|-------------------|-------------|------------|
+| 2%  | 385mV | 410mV | +25mV |
+| 5%  | 320mV | 300mV | -20mV |
+| 10% | 315mV | 280mV | -35mV |
+| 20% | 315mV | 270mV | -45mV |
+| 30% | 330mV | 275mV | -55mV |
+| 40% | 350mV | 285mV | -65mV |
+| 50% | 345mV | 270mV | -75mV |
+| 60% | 340mV | 250mV | -90mV |
+| 70% | 295mV | 195mV | -100mV |
+
+Differences of 20-75mV in the usable range are within normal battery variance. The 100mV difference at 70% is due to the voltage ceiling constraint.
+
+**Offset pattern matches CC/CV charging physics:**
+- High offset at low SoC (410mV at 2%): CC phase, high current
+- Medium offset mid-range (270-285mV): bulk CC charging
+- Low offset at high SoC (195mV at 70%): approaching CV phase, current tapering
+
+**Expected UX during charging:**
+- CC phase (0-70%): percentage rises normally
+- CV phase: plateaus around 70-80%
+- When complete: jumps to 100% (switches to discharge curve)
+- The last 30% is slow and adds less capacity — the plateau UX matches the physics
+- Pebble displays in 10% increments (except 2%, 5%), so small errors are invisible
+
 ### 2. PMIC Charge Termination (FC Fix)
 
 The MAX14690 PMIC controls charging. Original firmware targets 4.30V, which a 3.7V battery can't reach - so FC (Fully Charged) never appears.
