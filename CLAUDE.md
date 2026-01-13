@@ -2,101 +2,170 @@
 
 ## Overview
 
-This patcher supports 3.7V LiPo replacement batteries (like iFixit batteries) for Pebble watches that originally shipped with 3.8V batteries.
+This patcher supports 3.7V LiPo replacement batteries (like iFixit batteries) for Pebble watches that originally shipped with 3.8V batteries. The patches modify battery percentage curves and PMIC charge termination to work correctly with the lower voltage chemistry.
 
 ## Supported Devices
 
-| Flag | Device | Original Battery | Replacement |
-|------|--------|------------------|-------------|
-| `--silk-3v7` | Pebble 2 | 3.8V | 3.7V LiPo |
-| `--snowy-3v7` | Pebble Time Steel | 3.8V | 3.7V LiPo |
-| `--snowy-dvt-3v7` | Pebble Time | 3.8V | 3.7V LiPo |
+| Flag | Device | Platform | Original Battery | Replacement |
+|------|--------|----------|------------------|-------------|
+| `--silk-3v7` | Pebble 2 | SILK | 3.8V | 3.7V LiPo |
+| `--snowy-3v7` | Pebble Time Steel | SNOWY_S3 | 3.8V | 3.7V LiPo |
+| `--snowy-dvt-3v7` | Pebble Time | SNOWY | 3.8V | 3.7V LiPo |
+
+## Battery Chemistry Differences
+
+### 3.8V vs 3.7V LiPo Cells
+
+| Property | 3.8V (Original) | 3.7V (Replacement) |
+|----------|-----------------|---------------------|
+| Full charge | 4.35V | 4.20V |
+| Nominal | 3.80V | 3.70V |
+| Cutoff | 3.30V | 3.00V |
+| 100% threshold | 4250mV | 4120mV |
+
+The original firmware expects batteries to charge to 4.35V. A 3.7V replacement battery only reaches ~4.20V, causing:
+1. Battery percentage never shows 100%
+2. FC (Fully Charged) indicator never appears
 
 ## What Gets Patched
 
-### 1. Battery Percentage Tables
+### 1. Discharge Curve (Battery Percentage When Not Charging)
 
-Original 3.8V curve:
-- 100% = 4250mV
-- 0% = 3300mV
+Uses Joshua's proven silk 3.7V values, validated on Pebble 2 devices. These values also match PLATFORM_TINTIN in the Pebble firmware source.
 
-Patched 3.7V curve (Joshua's proven silk values):
-- 100% = 4120mV
-- 90% = 4080mV
-- 80% = 4000mV
-- 70% = 3925mV
-- 60% = 3860mV
-- 50% = 3810mV
-- 40% = 3775mV
-- 30% = 3745mV
-- 20% = 3710mV
-- 10% = 3670mV
-- 5% = 3600mV
-- 2% = 3410mV
-- 0% = 3100mV
+**Original 3.8V curve (PTS/snowy_s3):**
+| % | mV | Hex |
+|---|-----|-----|
+| 0 | 3300 | e4 0c |
+| 2 | 3465 | 89 0d |
+| 5 | 3615 | 1f 0e |
+| 10 | 3685 | 65 0e |
+| 20 | 3725 | 8d 0e |
+| 30 | 3760 | b0 0e |
+| 40 | 3795 | d3 0e |
+| 50 | 3830 | f6 0e |
+| 60 | 3885 | 2d 0f |
+| 70 | 3955 | 73 0f |
+| 80 | 4065 | e1 0f |
+| 90 | 4160 | 40 10 |
+| 100 | 4250 | 9a 10 |
 
-#### 3.7V Charging Curve
+**Patched 3.7V curve (Joshua's silk values):**
+| % | mV | Hex |
+|---|-----|-----|
+| 0 | 3100 | 1c 0c |
+| 2 | 3410 | 52 0d |
+| 5 | 3600 | 10 0e |
+| 10 | 3670 | 56 0e |
+| 20 | 3710 | 7e 0e |
+| 30 | 3745 | a1 0e |
+| 40 | 3775 | bf 0e |
+| 50 | 3810 | e2 0e |
+| 60 | 3860 | 14 0f |
+| 70 | 3925 | 55 0f |
+| 80 | 4000 | a0 0f |
+| 90 | 4080 | f0 0f |
+| 100 | 4120 | 18 10 |
 
-```
-2%  @ 3820mV
-5%  @ 3900mV
-10% @ 3950mV
-20% @ 3980mV
-30% @ 4020mV
-40% @ 4060mV
-50% @ 4080mV
-60% @ 4110mV
-70% @ 4120mV
-```
+### 2. Charging Curve (Battery Percentage While Charging)
 
-**Why it caps at 70%:** The PMIC terminates at 4.20V. With any charging polarization offset, showing 100% would require a voltage above termination. The curve is compressed from Pebble's original 400mV span (3850-4250mV) to 300mV (3820-4120mV).
+While charging, battery voltage is higher due to IR drop (current x internal resistance). The firmware uses a separate curve for charging that accounts for this offset.
 
-**Offset comparison to original Pebble 3.8V:**
+**Original 3.8V charging curve (PTS - 2% to 70%):**
+| % | mV | IR offset |
+|---|-----|-----------|
+| 2 | 3850 | +385mV |
+| 5 | 3935 | +320mV |
+| 10 | 4000 | +315mV |
+| 20 | 4040 | +315mV |
+| 30 | 4090 | +330mV |
+| 40 | 4145 | +350mV |
+| 50 | 4175 | +345mV |
+| 60 | 4225 | +340mV |
+| 70 | 4250 | +295mV |
 
-| SoC | Pebble 3.8V Offset | 3.7V Offset | Difference |
-|-----|-------------------|-------------|------------|
-| 2%  | 385mV | 410mV | +25mV |
-| 5%  | 320mV | 300mV | -20mV |
-| 10% | 315mV | 280mV | -35mV |
-| 20% | 315mV | 270mV | -45mV |
-| 30% | 330mV | 275mV | -55mV |
-| 40% | 350mV | 285mV | -65mV |
-| 50% | 345mV | 270mV | -75mV |
-| 60% | 340mV | 250mV | -90mV |
-| 70% | 295mV | 195mV | -100mV |
+**Patched 3.7V charging curve (preserves IR offset relationship):**
+| % | mV | Hex |
+|---|-----|-----|
+| 2 | 3820 | ec 0e |
+| 5 | 3900 | 3c 0f |
+| 10 | 3950 | 6e 0f |
+| 20 | 3980 | 8c 0f |
+| 30 | 4020 | b4 0f |
+| 40 | 4060 | dc 0f |
+| 50 | 4080 | f0 0f |
+| 60 | 4110 | 0e 10 |
+| 70 | 4120 | 18 10 |
 
-Differences of 20-75mV in the usable range are within normal battery variance. The 100mV difference at 70% is due to the voltage ceiling constraint.
+**Note:** Charging curve only goes to 70% because FC (Fully Charged) is triggered by PMIC hardware, not by reaching 100% in the percentage table.
 
-**Offset pattern matches CC/CV charging physics:**
-- High offset at low SoC (410mV at 2%): CC phase, high current
-- Medium offset mid-range (270-285mV): bulk CC charging
-- Low offset at high SoC (195mV at 70%): approaching CV phase, current tapering
+### 3. PMIC Charge Termination (FC Fix)
 
-**Expected UX during charging:**
-- CC phase (0-70%): percentage rises normally
-- CV phase: plateaus around 70-80%
-- When complete: jumps to 100% (switches to discharge curve)
-- The last 30% is slow and adds less capacity — the plateau UX matches the physics
-- Pebble displays in 10% increments (except 2%, 5%), so small errors are invisible
+The MAX14690 PMIC controls charging via I2C register CHG_CNTL_A (0x0A). The charge termination voltage is set in bits 6:4.
 
-### 2. PMIC Charge Termination (FC Fix)
-
-The MAX14690 PMIC controls charging. Original firmware targets 4.30V, which a 3.7V battery can't reach - so FC (Fully Charged) never appears.
+**Register values:**
+| Bits 6:4 | Voltage | Full byte (with other bits) |
+|----------|---------|------------------------------|
+| 0b110 | 4.35V | 0xCD |
+| 0b101 | 4.30V | 0xCB |
+| 0b011 | 4.20V | 0xC7 |
 
 **Patches applied:**
-- HACK register: 0xCD (4.35V) → 0xC7 (4.20V)
-- CHG_CNTL_A register: 0xCB (4.30V) → 0xC7 (4.20V)
+1. **HACK register**: 0xCD -> 0xC7 (4.35V -> 4.20V)
+2. **CHG_CNTL_A register**: 0xCB -> 0xC7 (4.30V -> 4.20V)
 
-Both must be patched because `prv_config_charger()` writes the HACK value first, cycles the charger, then writes the real config.
+**Why both patches are needed:**
 
-### 3. 15-Minute Maintain Timeout
+From `prv_config_charger()` in the firmware:
+```
+1. Write 0xCD (4.35V) to CHG_CNTL_A    <- HACK
+2. Turn charger OFF
+3. Turn charger ON                      <- PMIC evaluates: battery vs target
+4. Write 0xCB (4.30V) to CHG_CNTL_A    <- Real config
+```
 
-After reaching charge termination, the PMIC enters "maintain mode" for 15 minutes before reporting "Done". FC only appears after this phase completes.
+If only step 4 is patched:
+- At step 3, PMIC sees battery (4.0V) < target (4.35V) -> enters CHARGING mode
+- At step 4, PMIC is already in charging mode, doesn't re-evaluate
+- Result: FC never appears
 
-The test branch (`claude/pts-fc-test-YVWoU`) has an additional patch to disable this timeout for instant FC:
-- CH_TMR register: 0x18 (15 min) → 0x08 (0 min)
+With both patched:
+- At step 3, PMIC sees battery (4.0V) < target (4.20V) -> enters CHARGING mode
+- When battery reaches 4.20V, PMIC transitions to DONE state
+- Result: FC appears correctly
 
-This is optional - the main branches keep the 15-minute timeout for safety.
+### 4. 15-Minute Maintain Timeout (Optional)
+
+After reaching charge termination voltage, the PMIC enters "maintain mode" for 15 minutes before reporting "Done" to the firmware. This is controlled by CH_TMR register.
+
+**Test branch only** (`claude/pts-fc-test-YVWoU`):
+- CH_TMR register: 0x18 (15 min) -> 0x08 (0 min)
+- Provides instant FC for testing
+- Main branches keep the 15-minute timeout for battery safety
+
+## Binary Format
+
+### Battery Table Entry Format
+
+Each entry is 4 bytes (little-endian):
+```
+[percent_lo] [percent_hi] [millivolts_lo] [millivolts_hi]
+```
+
+Example: `64 00 18 10`
+- Percent: 0x0064 = 100
+- Millivolts: 0x1018 = 4120mV
+
+### ARM Thumb Instruction Patching
+
+PMIC register writes are ARM Thumb MOVS instructions:
+```
+0a 20    ; MOVS R0, #0x0A  (register address)
+cb 21    ; MOVS R1, #0xCB  (register value)
+97 f7    ; BL prv_write_register
+```
+
+We patch the immediate value in the second instruction.
 
 ## Usage
 
@@ -121,39 +190,51 @@ This is optional - the main branches keep the 15-minute timeout for safety.
 
 ## Safety Notes
 
-- 3100mV (3.1V) for 0% is safe - 3.7V LiPo cells can safely discharge to ~3.0V
-- 4120mV (4.12V) for 100% is conservative - 3.7V LiPo max is 4.20V
-- These values match Joshua's proven Pebble 2 curve (`--silk-3v7`)
+- **0% = 3100mV (3.1V)**: Safe - 3.7V LiPo cells can discharge to ~3.0V without damage
+- **100% = 4120mV (4.12V)**: Conservative - 3.7V LiPo max is 4.20V, leaving margin
+- **Termination at 4.20V**: Standard safe charge voltage for 3.7V LiPo chemistry
+- **15-minute maintain**: Ensures battery is fully topped off before showing FC
 
-## Technical Details
+## Firmware Source References
 
-### Battery Table Format
+### Battery Curves
+`/home/user/pebble-firmware/src/fw/services/common/battery/voltage/battery_curve.c`
 
-Each entry is 4 bytes (little-endian):
-```
-[pct_lo] [pct_hi] [mv_lo] [mv_hi]
-```
+Platform definitions:
+- `PLATFORM_TINTIN` - Classic Pebble (has 3.7V curves - used as reference)
+- `BOARD_SNOWY_S3` - Pebble Time Steel (3.8V curves)
+- `PLATFORM_SNOWY` - Pebble Time (3.8V curves)
+- `PLATFORM_SILK` - Pebble 2 (3.8V curves, Joshua's patch targets this)
 
-Example: `64 00 18 10` = 100% @ 0x1018 = 4120mV
+### PMIC Driver
+`/home/user/pebble-firmware/src/fw/drivers/pmic/max14690_pmic.c`
 
-### PMIC Register Values
+Key functions:
+- `prv_config_charger()` - Configures charge voltage registers
+- `prv_write_register()` - I2C write to PMIC
 
-CHG_CNTL_A (0x0A) bits 3:1 control charge voltage:
-- 0b011 = 4.20V (0xC7 with other bits)
-- 0b101 = 4.30V (0xCB with other bits)
-- 0b110 = 4.35V (0xCD with other bits)
+### Battery UI
+`/home/user/pebble-firmware/src/fw/shell/normal/battery_ui_fsm.c`
 
-### Why Both HACK and Real Config Need Patching
+- State machine for battery UI (charging, FC, etc.)
+- FC triggered by PMIC status register, not percentage
 
-From `prv_config_charger()`:
-1. HACK writes 4.35V to CHG_CNTL_A
-2. Charger cycles (off/on)
-3. Real config writes 4.30V to CHG_CNTL_A
+## Troubleshooting
 
-If only real config is patched, the PMIC enters charging mode during the HACK phase (battery < 4.35V target) and doesn't re-evaluate when real config is written.
+### Battery percentage stuck at low value
+- Check discharge curve was patched correctly
+- Verify pattern match in patcher output (no "WARNING" messages)
 
-## Source Files
+### FC never appears
+- Ensure BOTH PMIC patches applied (HACK and real config)
+- Wait 15 minutes after charge termination (maintain timeout)
+- Check PMIC patch applied (look for 0xC7 pattern in firmware)
 
-- `/home/user/pebble-firmware/src/fw/drivers/pmic/max14690_pmic.c` - PMIC driver
-- `/home/user/pebble-firmware/src/fw/services/common/battery/voltage/battery_curve.c` - Battery curves
-- `/home/user/pebble-firmware/src/fw/shell/normal/battery_ui_fsm.c` - FC trigger logic
+### Percentage jumps during charging
+- Normal behavior due to IR drop difference between charging and discharging
+- Charging curve accounts for this, but transitions can cause visible jumps
+
+## Version History
+
+- **v4.4.3-rbl-3v7**: Initial 3.7V support with FC fix
+- Based on Rebble v4.3 firmware with timezone and license patches
